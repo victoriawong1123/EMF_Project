@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 import matplotlib.dates as mdates
 from scipy import stats
+from scipy.stats import norm
 
 df: DataFrame = pd.read_excel(r'DATA_Project_1.xlsx')
 df['WEEKDAY'] = [i.day_of_week for i in df['DATE']]
@@ -15,7 +16,7 @@ assets_only_byweek: object = assets_byweek[assets_byweek.columns.difference(['DA
 
 
 # Compute daily and weekly simple returns, moving weekly or fridays only
-# 1. Diagnostic for individual assets: basic observation
+# 2. Diagnostic for individual assets: basic observation
 def assets_returns(assets, period, compounded=True):
     if not compounded:
         asset_return = (assets / assets.shift(periods=period)) - 1
@@ -29,14 +30,14 @@ def assets_returns(assets, period, compounded=True):
 
 
 # Getting daily/weekly simple and compounded returns
-# 1a. Compare simple return and log-returns in daily frequency.
+# 2a. Compare simple return and log-returns in daily frequency.
 daily_simple = assets_returns(assets_only, 1, False)
 weekly_simple = assets_returns(assets_only_byweek, 1, False)
 daily_compounded = assets_returns(assets_only, 1, True)
 weekly_compounded = assets_returns(assets_only_byweek, 1, True)
 
 # Compare the differences between log and simple returns
-# 1a
+# 2a
 daily_diff = daily_simple - daily_compounded
 weekly_diff = weekly_simple - weekly_compounded
 
@@ -78,7 +79,7 @@ daily_compounded.describe()
 weekly_compounded.describe()
 
 
-# 1c. Computing the mean, volatility, skewness and kurtosis of compounded returns
+# 2c. Computing the mean, volatility, skewness and kurtosis of compounded returns
 def return_moments(series: object, moments: list) -> pd.DataFrame:
     des_summary = pd.DataFrame()
     for moment in moments:
@@ -97,10 +98,14 @@ def return_moments(series: object, moments: list) -> pd.DataFrame:
 daily_res = return_moments(daily_compounded, [1, 2, 3, 4])
 weekly_res = return_moments(weekly_compounded, [1, 2, 3, 4])
 
-"""2. Diagnostic for individual assets: exploration"""
+# def summaryTable(return_char):
+#     for asset_mean in return_char
 
 
-# 2a. Find the maximum and minimum returns of the S&P500
+"""3. Diagnostic for individual assets: exploration"""
+
+
+# 3a. Find the maximum and minimum returns of the S&P500
 def get_max(series, col_name: str, i):
     max_returns = series.nlargest(i, col_name, keep='first')
     col_max = max_returns[col_name]
@@ -115,9 +120,57 @@ def get_min(series, col_name: str, i):
 
 stock_max = get_max(daily_compounded, 'Stock', 5)
 stock_min = get_min(daily_compounded, 'Stock', 5)
+# def get_max_min(series, col_name):
 
 
-# 2b Test if the magnitude of the crashes and booms is consistent with the hypothesis of normality
+# def plot_max_min()
+fig, ax = plt.subplots(figsize=(5, 2.3), dpi=300)
+# ax.plot(daily_compounded['Stock'], ls='-', color='b')
+ax.plot(df.DATE, df['Stock'], color='b')
+ax.spines['left'].set_color('b')
+ax.yaxis.label.set_color('b')
+ax.tick_params(axis='y', colors='b')
+ax.set_ylim(0, 15000)
+ax.set_xlabel('Year')
+ax.set_ylabel('Price')
+ax.set_title('Stock')
+
+axt = ax.twinx()
+axt.plot(daily_compounded.index, daily_compounded.Stock, color='r', alpha=0.6)
+axt.spines['right'].set_color('r')
+axt.yaxis.label.set_color('r')
+axt.tick_params(axis='y', colors='r')
+axt.set_ylim(-0.4, 0.2)
+axt.set_ylabel('Return')
+# axt.axhline(y=0, color='k')
+for d in stock_max.index.values:
+    axt.axvline(d, color='k', ls='--', lw=0.7)
+for d in stock_min.index.values:
+    axt.axvline(d, color='g', ls='-', lw=0.7)
+
+axt.plot([], [], color='k', ls='--', lw=0.7, label='max')
+axt.plot([], [], color='g', ls='-', lw=0.7, label='min')
+axt.legend(loc=3, frameon=False, bbox_to_anchor=(0, 0.15))
+
+fig.tight_layout()
+
+plt.show()
+
+
+# 3b Test if the magnitude of the crashes and booms is consistent with the hypothesis of normality
+def cal_pvalue(df: pd.DataFrame) -> pd.DataFrame:
+    out = {}
+    for k in df.keys():
+        ser = df[k].values
+        m = df[k].mean()
+        std = df[k].std()
+
+        loc = np.logical_or((ser < m - 3 * std), (ser >= m + 3 * std))
+        # pvalue = 2 * (1 - norm.cdf(m + 3 * std, m, std))
+        pvalue = len(ser[loc]) / len(ser)
+        out[k] = pvalue * 100
+    out = pd.DataFrame(out, index=[0])
+    return out
 
 
 # 2c Testing normality with Jarque Bera test, we first calculate the JB-Score
@@ -135,7 +188,6 @@ daily_kurtosis = pd.DataFrame(daily_res.loc['Kurtosis', :]).transpose()
 weekly_skewness = pd.DataFrame(weekly_res.loc['Skewness', :]).transpose()
 weekly_kurtosis = pd.DataFrame(weekly_res.loc['Kurtosis', :]).transpose()
 
-
 # Generating the Jarque Bera test statistics of all assets
 jarque_scores_daily = jb_statistics(daily_compounded, daily_skewness, daily_kurtosis)
 jarque_scores_weekly = jb_statistics(weekly_compounded, weekly_skewness, weekly_kurtosis)
@@ -145,13 +197,13 @@ jarque_scores_weekly = jb_statistics(weekly_compounded, weekly_skewness, weekly_
 # H0: Skewness and excess kurtosis are independent of each other -> normality
 # H1: Skewness and excess kurtosis are dependent of each other -> non-normal
 def jb_test(jb_stats, dof, alpha):
-    critical_val = stats.chi2.ppf(1-alpha, df=dof)
+    critical_val = stats.chi2.ppf(1 - alpha, df=dof)
     for i in jb_stats.columns:
         if jb_stats[i].values >= critical_val:
             print(f'Reject H0')
 
 
-"""3. Diagnostic for a portfolio"""
+"""4. Diagnostic for a portfolio"""
 """Portfolio using an equally weighted allocation, 
 we are computing the portfolio return as the average of the daily (weekly) 
 simple return of the six asset classes """
@@ -174,6 +226,19 @@ asset_weight = equal_weight(assets_only)
 daily_portfolio = portfolio_return(asset_weight, daily_simple)
 weekly_portfolio = portfolio_return(asset_weight, weekly_simple)
 
-# 3a. Descriptive statistics of portfolio daily returns
+# 4a. Descriptive statistics of portfolio daily returns
 daily_portfolio_char = return_moments(daily_portfolio, moments=[1, 2, 3, 4])
 weekly_portfolio_char = return_moments(weekly_portfolio, moments=[1, 2, 3, 4])
+
+if __name__ == '__main__':
+    backtest = pd.read_excel(r'DATA_HW1.xlsx')
+    backtest = backtest[backtest.columns.difference(['DATE'])]
+    res = assets_returns(backtest, period=1, compounded=False)
+
+    daily_pvalue = cal_pvalue(daily_compounded)
+    weekly_pvalue = cal_pvalue(weekly_compounded)
+
+    daily_pvalue.index = ['daily_pvalue']
+    weekly_pvalue.index = ['weekly_pvalue']
+    pval = pd.concat([daily_pvalue, weekly_pvalue])
+    print(pval)
