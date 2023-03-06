@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 import matplotlib.dates as mdates
 from scipy import stats
-from scipy.stats import norm
 
 df: DataFrame = pd.read_excel(r'DATA_Project_1.xlsx')
 df['WEEKDAY'] = [i.day_of_week for i in df['DATE']]
