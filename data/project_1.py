@@ -5,7 +5,7 @@ from pandas import DataFrame
 import matplotlib.dates as mdates
 from scipy import stats
 
-df: DataFrame = pd.read_excel(r'DATA_Project_1.xlsx')
+df: DataFrame = pd.read_excel(r'data/DATA_Project_1.xlsx')
 df['WEEKDAY'] = [i.day_of_week for i in df['DATE']]
 assets_only = df[df.columns.difference(['DATE', 'WEEKDAY'])]
 assets_byweek = df.loc[df['WEEKDAY'] == 4]
@@ -85,7 +85,7 @@ def return_moments(series: object, moments: list) -> pd.DataFrame:
         if moment == 1:
             des_summary['Mean'] = series.mean()
         elif moment == 2:
-            des_summary['Volatility'] = series.std()
+            des_summary['Std. Dev'] = series.std()
         elif moment == 3:
             des_summary['Skewness'] = series.skew()
         elif moment == 4:
@@ -94,11 +94,19 @@ def return_moments(series: object, moments: list) -> pd.DataFrame:
 
 
 # Generating the mean, volatility, skewness and kurtosis of daily and weekly compounded returns
-daily_res = return_moments(daily_compounded, [1, 2, 3, 4])
-weekly_res = return_moments(weekly_compounded, [1, 2, 3, 4])
+daily_res_compounded = return_moments(daily_compounded, [1, 2, 3, 4])
+weekly_res_compounded = return_moments(weekly_compounded, [1, 2, 3, 4])
+daily_res_simple = return_moments(daily_simple, [1, 2, 3, 4])
+weekly_res_simple = return_moments(weekly_simple, [1, 2, 3, 4])
 
-# def summaryTable(return_char):
-#     for asset_mean in return_char
+
+def convert_annualized(ds):
+    ds = ds.copy()
+    ds.loc['An. Mean'] = (((1 + ds.loc['Mean']) ** 252 - 1) * 100)
+    ds.loc['An. Std. Dev'] = (ds.loc['Std. Dev']*np.sqrt(252) * 100)
+    ds.loc['Mean'] = (ds.loc['Mean'] * 100)
+    ds.loc['Std. Dev'] = (ds.loc['Std. Dev'] * 100)
+    return ds.round(4)
 
 
 """3. Diagnostic for individual assets: exploration"""
@@ -182,10 +190,10 @@ def jb_statistics(returns, skewness, kurtosis):
 
 
 # Getting the daily and weekly skewness and kurtosis of all assets
-daily_skewness = pd.DataFrame(daily_res.loc['Skewness', :]).transpose()
-daily_kurtosis = pd.DataFrame(daily_res.loc['Kurtosis', :]).transpose()
-weekly_skewness = pd.DataFrame(weekly_res.loc['Skewness', :]).transpose()
-weekly_kurtosis = pd.DataFrame(weekly_res.loc['Kurtosis', :]).transpose()
+daily_skewness = pd.DataFrame(daily_res_compounded.loc['Skewness', :]).transpose()
+daily_kurtosis = pd.DataFrame(daily_res_compounded.loc['Kurtosis', :]).transpose()
+weekly_skewness = pd.DataFrame(weekly_res_compounded.loc['Skewness', :]).transpose()
+weekly_kurtosis = pd.DataFrame(weekly_res_compounded.loc['Kurtosis', :]).transpose()
 
 # Generating the Jarque Bera test statistics of all assets
 jarque_scores_daily = jb_statistics(daily_compounded, daily_skewness, daily_kurtosis)
