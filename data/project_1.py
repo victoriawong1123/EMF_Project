@@ -5,7 +5,25 @@ from pandas import DataFrame
 import matplotlib.dates as mdates
 from scipy import stats
 
-df: DataFrame = pd.read_excel(r'data/DATA_Project_1.xlsx')
+
+def rename_df(df: pd.DataFrame):
+    df.rename(columns={
+        'S&PCOMP(RI)': 'SP500',
+        'MLGTRSA(RI)': 'G_BONDS',
+        'MLCORPM(RI)': 'C_BONDS',
+        'WILURET(RI)': 'REAL_ESTATE',
+        'RJEFCRT(TR)': 'COMMODITY',
+        'JPUSEEN': 'CURRENCY'
+    },
+        inplace=True)
+    return df
+
+
+df = pd.read_excel(r'DATA_Project_1.xlsx', header=1)
+print(df)
+df = rename_df(df)
+print(df)
+
 df['WEEKDAY'] = [i.day_of_week for i in df['DATE']]
 assets_only = df[df.columns.difference(['DATE', 'WEEKDAY'])]
 assets_byweek = df.loc[df['WEEKDAY'] == 4]
@@ -125,25 +143,25 @@ def get_min(series, col_name: str, i):
     return col_min
 
 
-stock_max = get_max(daily_compounded, 'Stock', 5)
-stock_min = get_min(daily_compounded, 'Stock', 5)
+stock_max = get_max(daily_compounded, 'SP500', 5)
+stock_min = get_min(daily_compounded, 'SP500', 5)
 # def get_max_min(series, col_name):
 
 
 # def plot_max_min()
 fig, ax = plt.subplots(figsize=(5, 2.3), dpi=300)
-# ax.plot(daily_compounded['Stock'], ls='-', color='b')
-ax.plot(df.DATE, df['Stock'], color='b')
+# ax.plot(daily_compounded['SP500'], ls='-', color='b')
+ax.plot(df.DATE, df['SP500'], color='b')
 ax.spines['left'].set_color('b')
 ax.yaxis.label.set_color('b')
 ax.tick_params(axis='y', colors='b')
 ax.set_ylim(0, 15000)
 ax.set_xlabel('Year')
 ax.set_ylabel('Price')
-ax.set_title('Stock')
+ax.set_title('SP500')
 
 axt = ax.twinx()
-axt.plot(daily_compounded.index, daily_compounded.Stock, color='r', alpha=0.6)
+axt.plot(daily_compounded.index, daily_compounded.SP500, color='r', alpha=0.6)
 axt.spines['right'].set_color('r')
 axt.yaxis.label.set_color('r')
 axt.tick_params(axis='y', colors='r')
@@ -238,10 +256,6 @@ daily_portfolio_char = return_moments(daily_portfolio, moments=[1, 2, 3, 4])
 weekly_portfolio_char = return_moments(weekly_portfolio, moments=[1, 2, 3, 4])
 
 if __name__ == '__main__':
-    backtest = pd.read_excel(r'DATA_HW1.xlsx')
-    backtest = backtest[backtest.columns.difference(['DATE'])]
-    res = assets_returns(backtest, period=1, compounded=False)
-
     daily_pvalue = cal_pvalue(daily_compounded)
     weekly_pvalue = cal_pvalue(weekly_compounded)
 
