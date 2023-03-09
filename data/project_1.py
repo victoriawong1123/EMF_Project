@@ -48,7 +48,6 @@ def assets_returns(assets, period, compounded=True):
 
 # Graphs for showing the differences between simple and compounded returns
 def log_vs_simple(x, y, series1, series2, title):
-    plt.gca()
     fig, ax = plt.subplots(x, y, figsize=(7.5, 6), sharex='col')
     flat_axes = ax.flatten()
     for i, key in enumerate(series1.keys()):
@@ -68,6 +67,7 @@ def log_vs_simple(x, y, series1, series2, title):
     fig.suptitle(title)
 
     fig.tight_layout()
+    fig.savefig(f'{title}.png')
     plt.show()
 
 
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     axt.legend(loc=3, frameon=False, bbox_to_anchor=(0, 0.15))
 
     fig.tight_layout()
-
+    # fig.savefig('sp500.png')
     plt.show()
 
     # 1c. Getting the daily and weekly skewness and kurtosis of all assets
@@ -280,3 +280,17 @@ if __name__ == '__main__':
     weekly_log_max = weekly_res_compounded.max()
     weekly_simple_min = weekly_res_simple.min()
     weekly_simple_max = weekly_res_simple.max()
+
+    ax = plt.gca()
+    x = df.DATE
+    for k in df.keys():
+        if k == 'DATE':
+            continue
+        ax.plot(x, df[k], label=k)
+    ax.legend(loc=2)
+    ax.set_ylabel('Price')
+    ax.set_xlabel('Year')
+    plt.tight_layout()
+    plt.savefig('price_index.png')
+    plt.show()
+
