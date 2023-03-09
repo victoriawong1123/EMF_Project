@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 import matplotlib.dates as mdates
 from scipy import stats
+import statsmodels.api as sm
 
 
 def rename_df(df: pd.DataFrame):
@@ -157,6 +158,9 @@ def jb_test(jb_stats, dof, alpha):
             print(f'Reject H0')
 
 
+# 2d. Autocorrelation
+
+
 """3. Diagnostic for a portfolio"""
 """Portfolio using an equally weighted allocation, 
 we are computing the portfolio return as the average of the daily (weekly) 
@@ -174,6 +178,25 @@ def equal_weight(assets):
 def portfolio_return(weight, daily):
     daily_portfolio_return = pd.DataFrame(daily @ weight.T)
     return daily_portfolio_return
+
+
+def get_acf(ds: pd.DataFrame, nlags=10) -> pd.DataFrame:
+    out = {}
+    for k in ds.keys():
+        res = sm.tsa.acf(ds[k], nlags=nlags)
+        out[k] = res[1:]
+    return pd.DataFrame(out)
+
+
+def ljungbox_test(ds: pd.DataFrame, p=10):
+    t = len(ds)
+    acf = get_acf(ds=ds, nlags=p)
+    t_minus_j = t - np.linspace(1, p, p)
+    ljun = t*(t+2)*((acf**2).divide(t_minus_j, axis='index')).sum()
+    pvalue = 1 - stats.chi2.cdf(ljun, p)
+    return pd.DataFrame({'LB statisti': ljun.values, 'p-val': pvalue},
+                        index=ljun.index).transpose()
+
 
 
 if __name__ == '__main__':
@@ -293,4 +316,12 @@ if __name__ == '__main__':
     plt.tight_layout()
     plt.savefig('price_index.png')
     plt.show()
+
+    # acf
+
+    daily_lj_log = ljungbox_test(daily_compounded)
+    weekly_lj_log = ljungbox_test(weekly_compounded)
+
+    daily_lj_simple = ljungbox_test(daily_simple)
+    weekly_lj_simple = ljungbox_test(weekly_simple)
 
