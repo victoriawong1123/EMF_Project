@@ -140,13 +140,15 @@ def cal_pvalue(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # 2c Testing normality with Jarque Bera test, we first calculate the JB-Score
+# Please note, we are using the JB formula as given by professor's slides. The result is different
+# from using the Jarque_Bera function from statsmodel package due to the excess kurtosis. (Kurtosis or Kurtosis-3)
 def jb_statistics(returns, skewness, kurtosis):
     sample_size = np.shape(returns)[0]
     names = []
     for i in skewness.columns:
         names.append(i)
     p1 = np.asarray(skewness ** 2) / 6
-    p2 = np.asarray(kurtosis ** 2) / 24
+    p2 = np.asarray((kurtosis-3) ** 2) / 24
     out = sample_size * (p1+p2)
     out = pd.DataFrame(out, columns=names)
     return out
