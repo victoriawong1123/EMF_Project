@@ -142,11 +142,14 @@ def cal_pvalue(df: pd.DataFrame) -> pd.DataFrame:
 # 2c Testing normality with Jarque Bera test, we first calculate the JB-Score
 def jb_statistics(returns, skewness, kurtosis):
     sample_size = np.shape(returns)[0]
-    jb_score = {}
+    names = []
     for i in skewness.columns:
-        jb_score[i] = sample_size * ((skewness[i].values ** 2 / 6) + (kurtosis[i].values - 3) ** 2 / 24)
-    return pd.DataFrame(jb_score, index=['Jarque Bera Score'])
-
+        names.append(i)
+    p1 = np.asarray(skewness ** 2) / 6
+    p2 = np.asarray(kurtosis ** 2) / 24
+    out = sample_size * (p1+p2)
+    out = pd.DataFrame(out, columns=names)
+    return out
 
 # Testing normality
 # H0: Skewness and excess kurtosis are independent of each other -> normality
@@ -297,6 +300,9 @@ if __name__ == '__main__':
 
     daily_lj_simple = ljungbox_test(daily_simple)
     weekly_lj_simple = ljungbox_test(weekly_simple)
+
+    daily_squared = ljungbox_test(np.square(daily_compounded))
+    weekly_squared = ljungbox_test(np.square(weekly_compounded))
 
     # 3a. Equally weighted portfolio based on simple returns
     asset_weight = equal_weight(assets_only)
